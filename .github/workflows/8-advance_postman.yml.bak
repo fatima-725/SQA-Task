@@ -1,0 +1,55 @@
+name: Advanced Postman Newman Tests
+
+on: [push]
+
+jobs:
+  postman-tests:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        collection: [collection1.json, collection2.json]
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '14'
+
+    - name: Cache Node modules
+      uses: actions/cache@v3
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+
+    - name: Install Newman and Newman Reporter
+      run: npm install -g newman newman-reporter-html newman-reporter-htmlextra
+
+    - name: Run Newman Tests
+      run: newman run postman/${{ matrix.collection }} -e postman/environment.json --reporters cli,html,htmlextra --reporter-htmlextra-export report.html
+      env:
+        POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
+
+    - name: Upload Newman Report
+      uses: actions/upload-artifact@v3
+      with:
+        name: newman-report-${{ matrix.collection }}
+        path: report.html
+
+  notify-slack:
+    needs: postman-tests
+    runs-on: ubuntu-latest
+    if: always() # run even if the tests fail
+    steps:
+      - name: Notify Slack
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took # customize as per your needs
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }} # set this in your repo secrets

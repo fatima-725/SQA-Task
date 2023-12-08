@@ -1,0 +1,71 @@
+name: Cypress Sequential Test Pipeline
+
+on: [push]
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: npm ci
+
+  test:
+    needs: install
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        browser: [chrome, firefox]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Cypress Tests
+        run: npx cypress run --browser ${{ matrix.browser }}
+
+      - name: Upload Screenshots
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: cypress-screenshots-${{ matrix.browser }}
+          path: cypress/screenshots
+
+      - name: Upload Videos
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: cypress-videos-${{ matrix.browser }}
+          path: cypress/videos
+
+  post-test:
+    needs: test
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Archive Screenshots
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: archived-screenshots
+          path: cypress/screenshots
+
+      - name: Archive Videos
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: archived-videos
+          path: cypress/videos
