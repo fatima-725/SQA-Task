@@ -37,7 +37,9 @@ jobs:
 
     - name: Upload Newman Report
       uses: actions/cache@v3
-      
+      with:
+        name: newman-report-${{ matrix.collection }}
+        path: report.html
 
   notify-slack:
     needs: postman-tests
