@@ -36,10 +36,8 @@ jobs:
         POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
 
     - name: Upload Newman Report
-      uses: actions/upload-artifact@v3
-      with:
-        name: newman-report-${{ matrix.collection }}
-        path: report.html
+      uses: actions/cache@v3
+      
 
   notify-slack:
     needs: postman-tests
